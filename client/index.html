@@ -1,0 +1,112 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARK — the 24/7 fair-value oracle for tokenized stocks</title>
+<meta name="description" content="Wall Street's tape stops at 4pm. Tokenized stocks on Robinhood Chain don't. MARK blends the official tape, Robinhood Chain pools, xStocks and index futures into a signed fair value with a confidence band, every second of the week.">
+<meta property="og:title" content="MARK — mark to market, 24/7"><meta property="og:description" content="The fair-value oracle for tokenized stocks on Robinhood Chain. Signed feeds, confidence bands, on-chain contract."><meta property="og:image" content="/brand/mark-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head><body>
+<header class="sign"><div class="wrap">
+  <a class="brand" href="/"><span class="mk">MAR<span>K</span></span><span class="tag">Fair value · 24/7<br>Robinhood Chain</span></a>
+  <nav><a href="/" class="on">Board</a><a href="/trade">Trade</a><a href="/desk">Practice</a><a href="/docs">Docs</a><a href="/contracts/MarkOracle.sol">Contract</a><a id="xlink" href="https://x.com/MarkOracleRH" target="_blank" rel="noopener">X</a><a id="connect" class="cta" href="javascript:void(0)">Connect</a></nav>
+</div></header>
+<div class="tape"><span id="tape">MARK · MARK TO MARKET · WALL STREET CLOSES AT 4PM · THE TOKENIZED STOCKS DON'T · MARK KEEPS MARKING ·</span></div>
+
+<main class="wrap">
+  <h1 class="hero">The tape stops.<br><em>The mark doesn't.</em></h1>
+  <p class="lede">Tokenized stocks on Robinhood Chain trade all night and all weekend. The official price does not. <b>MARK</b> is the oracle that keeps marking them to market when Wall Street is asleep: a signed fair value with a confidence band, blended from the last official print, every Robinhood Chain pool, xStocks on Solana, and beta-adjusted index futures. Free to read, verifiable by anyone, and tradeable on-chain: long or short any name on the board with USDG, up to 10×, all weekend.</p>
+
+  <div class="boardwrap">
+    <div class="boardhead">
+      <div class="ttl"><b>MARK</b> · Departures from the last official print</div>
+      <div class="clock">
+        <span>New York <span id="clk" class="fl"></span></span>
+        <span id="reopenL">Wall St reopens in <span id="reopen" class="fl"></span></span>
+      </div>
+    </div>
+    <table class="board">
+      <thead><tr><th>Ticker</th><th></th><th class="r">Official</th><th class="r">Age</th><th class="r">Mark</th><th class="r">± Conf</th><th class="r">RH basis</th><th>Session</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="legend"><span><i style="background:var(--green)"></i>Open: mark = tape</span><span><i style="background:var(--cream)"></i>Pre / post: extended prints + pools</span><span><i style="background:var(--amber)"></i>Closed: pools + xStocks + futures proxy</span><span>RH basis = Robinhood Chain pools vs MARK, bps</span><span id="sig" style="margin-left:auto"></span></div>
+  </div>
+
+  <div id="cabar" class="ca" hidden><b>$MARK · ROBINHOOD CHAIN</b><span id="ca"></span><button id="copyca">Copy</button></div>
+
+  <div class="grid3">
+    <div class="plaque"><h3>01 · The problem</h3><h2>Every oracle goes dark at 4pm</h2><p>Equity feeds freeze at the close. From Friday 16:00 to Monday 09:30 that number is 65 hours old, while TSLA on Robinhood Chain keeps printing every block. Perps, lending markets and prediction markets either freeze with it or quietly lie.</p></div>
+    <div class="plaque"><h3>02 · The method</h3><h2>Weighted median, not a guess</h2><p>Each regime has its own source weights. Sources that stray more than 8% from the preliminary median are rejected and reported. The confidence band widens with source dispersion and with hours since the close. Exact weights are in the <a href="/docs">docs</a>.</p></div>
+    <div class="plaque"><h3>03 · The proof</h3><h2>Signed. Public. On-chain.</h2><p>Every mark is an ed25519-signed payload you can verify with one GET. Staked publishers push the same fixed-point integers to <a href="/contracts/MarkOracle.sol">MarkOracle.sol</a>, consumers read the median, and a bad report inside the window gets slashed.</p></div>
+  </div>
+
+  <section class="sect">
+    <h2><small>Live proof · <span id="proofSym">TSLA</span></small>What the oracle sees right now</h2>
+    <p>Same stock, five opinions. Wall Street's print, the extended session, each Robinhood Chain pool weighted by liquidity, the xStock on Solana, and the futures-implied move. MARK takes the weighted median and publishes the band.</p>
+    <div class="grid2" style="margin-top:18px">
+      <div><table class="paper" id="proofTbl"><thead><tr><th>Source</th><th>Venue</th><th class="r">Price</th><th class="r">Weight</th><th class="r">vs Mark</th></tr></thead><tbody></tbody></table></div>
+      <div class="plaque" id="proofSay"><h3>The board says</h3><h2 id="proofH">…</h2><p id="proofP"></p><p style="margin-top:14px"><a class="btn" id="proofLink" href="/feed/TSLA">Open feed →</a> <a class="btn ghost" href="/trade">Trade it</a></p></div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2><small>Integrate</small>One GET, or one call</h2>
+    <div class="grid2">
+      <div><pre>GET https://markoracle.xyz/api/feed/TSLA/signed
+{
+  "sym": "TSLA", "mark": 358.37, "conf": 2.55, "session": "closed",
+  "payload": "MARK|TSLA|35837818547|255764158|1788415417|CLOSED|101",
+  "sig": "6130240a80f9…", "pub": "7ba4b5370bdd…", "alg": "ed25519"
+}
+
+GET /api/verify?payload=…&amp;sig=…   →  { "valid": true }</pre></div>
+      <div><pre>// Solidity — Robinhood Chain
+IMarkOracle mark = IMarkOracle(ORACLE);
+MarkOracle.Price memory p = mark.getPrice(mark.feedId("TSLA"));
+// p.price  int64  USD·1e8      p.conf uint64 USD·1e8
+// p.session 0 OPEN 1 PRE 2 POST 3 CLOSED   p.reports uint8
+require(p.session == 0 || p.conf * 100 &lt; uint64(p.price), "band too wide");</pre></div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2><small>$MARK</small>The token pays for the truth</h2>
+    <div class="grid3">
+      <div class="plaque"><h3>Reads</h3><h2>Paid pulls</h2><p><code>pullPrice</code> charges a fee in $MARK per on-chain read and streams it to the publishers whose reports were used. <code>getPrice</code> stays a free view so nobody is locked out of the number.</p></div>
+      <div class="plaque"><h3>Publishers</h3><h2>Stake to post</h2><p>Only staked publishers can push a report. Reports outside twice the accepted band are slashed 20% by the guardian, and the slash is paid to whoever caught it.</p></div>
+      <div class="plaque"><h3>Feeds</h3><h2>16 names, day one</h2><p>SPY, QQQ, NVDA, AAPL, TSLA, MSFT, AMZN, META, GOOGL, HOOD, COIN, MSTR, PLTR, GME, AMD, CRCL. Every one is a real tokenized stock with live Robinhood Chain pools.</p></div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2><small>Trade</small>Long or short the mark, on-chain</h2>
+    <div class="grid3">
+      <div class="plaque"><h3>Venue</h3><h2>USDG perps on Robinhood Chain</h2><p>Deposit USDG, pick a name, pick a side, up to 10×. Your order carries a fresh oracle signature that <a href="/contracts/MarkPerps.sol">MarkPerps.sol</a> verifies before it fills.</p></div>
+      <div class="plaque"><h3>Fills</h3><h2>Mark ± half the band</h2><p>Longs buy at mark plus half the confidence, shorts sell at mark minus half. A wide weekend band is a wide spread, and it tightens the moment the tape reopens.</p></div>
+      <div class="plaque"><h3>Counterparty</h3><h2>One liquidity pool</h2><p>LPs provide USDG and take the other side of every position. They collect 8 bp per side and every liquidation remainder. Open interest is capped at four times the pool.</p></div>
+    </div>
+    <p><a class="btn amber" href="/trade">Open the trade desk →</a> <a class="btn ghost" href="/desk">Practice with paper first</a></p>
+  </section>
+
+  <section class="sect" id="faq">
+    <h2><small>FAQ</small>Questions people ask</h2>
+    <div class="grid2">
+      <div class="plaque"><h3>What is MARK?</h3><p>A fair-value oracle for tokenized stocks on Robinhood Chain. It publishes a price and a confidence band for each name every four seconds, 24/7, and signs every one of them.</p></div>
+      <div class="plaque"><h3>Why not just use the last close?</h3><p>Because the tokenized stock keeps trading after the close and the market keeps moving. A 65-hour-old number is not a price, it is a memory. MARK reads what is actually trading right now.</p></div>
+      <div class="plaque"><h3>Where does the weekend price come from?</h3><p>Every Robinhood Chain pool for the name weighted by liquidity, the same stock's xStock on Solana, and the beta-adjusted move in ES or NQ futures since the cash close. The last official print is in the blend too, with a weight that fades over three days.</p></div>
+      <div class="plaque"><h3>How do I know it is not made up?</h3><p>Every feed page lists each source, its price, its weight and its deviation from the mark, plus anything that was rejected. The signed payload verifies against the public key at /api/signer, and the contract verifies the same numbers on-chain.</p></div>
+      <div class="plaque"><h3>What does the confidence band mean?</h3><p>How far apart the sources are, widened by how long the tape has been closed. When the sources agree and the market is open it is a few basis points. On a quiet Sunday it is wider, and your fill pays that width.</p></div>
+      <div class="plaque"><h3>How does trading work?</h3><p>Deposit USDG on Robinhood Chain, open a long or short at up to 10×, close whenever you like. The contract fills at mark ± half the band, charges 8 bp per side to the liquidity pool, and liquidates positions that fall under 5% maintenance.</p></div>
+      <div class="plaque"><h3>Who takes the other side?</h3><p>The liquidity pool. Anyone can provide USDG to it, earn every fee and every liquidation remainder, and redeem their share whenever the pool still backs open interest.</p></div>
+      <div class="plaque"><h3>Can a bad pool price move the mark?</h3><p>Not on its own. The mark is a weighted median, and any source more than 8% from the preliminary median is rejected outright and shown on the feed page as rejected.</p></div>
+      <div class="plaque"><h3>What is $MARK for?</h3><p>Publishers stake it to post reports to the on-chain oracle, paid reads are charged in it and flow to those publishers, and slashes are paid out in it.</p></div>
+      <div class="plaque"><h3>Can I build on the feed?</h3><p>Yes. One GET returns a signed mark, one call to MarkOracle.sol returns the median of staked reports. Both use the same fixed-point integers, so what you verify off-chain is what settles on-chain.</p></div>
+      <div class="plaque"><h3>Is a mark a guarantee?</h3><p>No. It is the best available estimate with a stated band. Check the session and the band before trusting a number, exactly as you would with any oracle. Nothing here is investment advice.</p></div>
+      <div class="plaque"><h3>Which names are listed?</h3><p>SPY, QQQ, NVDA, AAPL, TSLA, MSFT, AMZN, META, GOOGL, HOOD, COIN, MSTR, PLTR, GME, AMD and CRCL. Every one is a real tokenized stock with live Robinhood Chain pools.</p></div>
+    </div>
+  </section>
+</main>
+<footer class="wrap foot"><span>MARK · mark to market · Robinhood Chain</span><span><a href="/docs">Docs</a> · <a href="/api/board">API</a> · <a href="/api/signer">Signer</a> · <a href="/contracts/MarkOracle.sol">Contract</a> · <a href="https://github.com/PumpLandSOL/mark" target="_blank" rel="noopener">GitHub</a></span></footer>
+<script src="/flap.js"></script><script src="/connect.js"></script><script src="/app.js"></script>
+</body></html>

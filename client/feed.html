@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARK — feed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head><body>
+<header class="sign"><div class="wrap">
+  <a class="brand" href="/"><span class="mk">MAR<span>K</span></span><span class="tag">Fair value · 24/7<br>Robinhood Chain</span></a>
+  <nav><a href="/">Board</a><a href="/trade">Trade</a><a href="/desk">Practice</a><a href="/docs">Docs</a><a href="/contracts/MarkOracle.sol">Contract</a><a id="connect" class="cta" href="javascript:void(0)">Connect</a></nav>
+</div></header>
+<main class="wrap">
+  <h1 class="hero" style="font-size:clamp(40px,6vw,72px)"><span id="sym">…</span> <em id="name"></em></h1>
+  <p class="lede" id="lede"></p>
+  <div class="bigmark">
+    <div><div class="k">Mark · USD</div><span id="fmark" class="fl"></span></div>
+    <div><div class="k">± Confidence</div><span id="fconf" class="fl sm"></span></div>
+    <div><div class="k">Session</div><span id="fsess" class="fl sm"></span></div>
+    <div><div class="k">Official · age</div><span id="foff" class="fl sm"></span></div>
+    <div><div class="k">RH basis</div><span id="fbasis" class="fl sm"></span></div>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3 style="font-family:var(--cond);letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--faint);margin-bottom:8px">Mark ± band · last 6h · shaded = closed</h3>
+      <canvas class="band" id="band"></canvas>
+    </div>
+    <div>
+      <h3 style="font-family:var(--cond);letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--faint);margin-bottom:8px">Sources in this mark</h3>
+      <table class="paper" id="src"><thead><tr><th>Source</th><th>Venue</th><th class="r">Price</th><th class="r">Weight</th><th class="r">vs Mark</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="plaque"><h3>Signed payload</h3><pre id="payload" style="white-space:pre-wrap;word-break:break-all"></pre><p style="margin-top:10px"><button class="btn amber" id="verify">Verify signature</button> <span id="vres" class="note"></span></p><p class="note" style="margin-top:8px">Format: MARK | symbol | mark·1e8 | conf·1e8 | unix seconds | SESSION | seq. Verify against the public signer key at <a href="/api/signer">/api/signer</a>.</p></div>
+    <div class="plaque"><h3>Underlyings</h3><p id="under"></p><h3 style="margin-top:14px">Futures proxy</h3><p id="fut"></p></div>
+  </div>
+</main>
+<footer class="wrap foot"><span>MARK · mark to market</span><span><a href="/">Board</a> · <a href="/docs">Docs</a></span></footer>
+<script src="/flap.js"></script><script src="/connect.js"></script>
+<script>
+(function(){
+  const SYM=(location.pathname.split('/').pop()||'TSLA').toUpperCase();
+  document.title='MARK — '+SYM;
+  const fmtPx=(p)=>p>=1000?p.toFixed(1):p.toFixed(2), fmtBps=(b)=>b==null?'—':(b>=0?'+':'')+Math.round(b)+'BP';
+  const ageStr=(h)=>{if(h==null)return '—';if(h<1)return Math.round(h*60)+'M';const H=Math.floor(h),M=Math.round((h-H)*60);return H+'H '+String(M).padStart(2,'0')+'M'};
+  const ST={open:'OPEN',pre:'PRE',post:'POST',closed:'CLOSED'}, SC={open:'green',pre:'',post:'',closed:'amber'};
+  const F={mark:new Flap(document.getElementById('fmark'),9,{align:'right'}),conf:new Flap(document.getElementById('fconf'),11),sess:new Flap(document.getElementById('fsess'),6),off:new Flap(document.getElementById('foff'),16),basis:new Flap(document.getElementById('fbasis'),7)};
+  let SIGNED=null;
+  function band(h){
+    const c=document.getElementById('band'),dpr=devicePixelRatio||1;c.width=c.clientWidth*dpr;c.height=c.clientHeight*dpr;const g=c.getContext('2d');g.scale(dpr,dpr);const W=c.clientWidth,H=c.clientHeight;
+    if(h.length<2){g.fillStyle='#8a8476';g.font='13px IBM Plex Sans';g.fillText('collecting history…',12,20);return}
+    const lo=Math.min(...h.map(p=>p[1]-p[2])),hi=Math.max(...h.map(p=>p[1]+p[2])),pad=(hi-lo)*.15||1;
+    const x=(i)=>30+(W-40)*i/(h.length-1),y=(v)=>H-24-(H-40)*((v-(lo-pad))/((hi+pad)-(lo-pad)));
+    for(let i=0;i<h.length-1;i++){if(h[i][3]==='c'){g.fillStyle='rgba(240,165,31,.12)';g.fillRect(x(i),0,x(i+1)-x(i)+1,H)}}
+    g.beginPath();h.forEach((p,i)=>g[i?'lineTo':'moveTo'](x(i),y(p[1]+p[2])));for(let i=h.length-1;i>=0;i--)g.lineTo(x(i),y(h[i][1]-h[i][2]));g.closePath();g.fillStyle='rgba(23,21,15,.12)';g.fill();
+    g.beginPath();h.forEach((p,i)=>g[i?'lineTo':'moveTo'](x(i),y(p[1])));g.strokeStyle='#17150f';g.lineWidth=1.6;g.stroke();
+    g.fillStyle='#8a8476';g.font='11px IBM Plex Sans';g.fillText(fmtPx(hi),4,12);g.fillText(fmtPx(lo),4,H-6);
+    const t0=new Date(h[0][0]),t1=new Date(h[h.length-1][0]);g.fillText(t0.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),30,H-6);g.textAlign='right';g.fillText(t1.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),W-10,H-6);
+  }
+  async function load(){
+    const f=await fetch('/api/feed/'+SYM).then(r=>r.json());
+    if(f.error){document.getElementById('sym').textContent='Unknown feed';return}
+    document.getElementById('sym').textContent=f.sym;document.getElementById('name').textContent=f.name;
+    F.mark.set(fmtPx(f.mark),f.dir>0?'green':f.dir<0?'red':'');F.conf.set('±'+f.conf.toFixed(2)+' '+Math.round(f.confBps)+'BP');F.sess.set(ST[f.session],SC[f.session]);
+    F.off.set(f.official?fmtPx(f.official.price)+' · '+(f.session==='open'?'LIVE':ageStr(f.official.ageH)):'—','dim');F.basis.set(fmtBps(f.basis.pool),Math.abs(f.basis.pool||0)>100?'amber':'');
+    document.getElementById('lede').innerHTML=(f.official?'Last official print <b>'+fmtPx(f.official.price)+'</b> ('+ageStr(f.official.ageH)+' ago). ':'')+'MARK fair value <b>'+fmtPx(f.mark)+'</b> ± '+f.conf.toFixed(2)+', '+fmtBps(f.basis.vsOfficial)+' from the tape. '+f.poolCount+' Robinhood Chain pools, $'+Math.round(f.poolLiq/1e3).toLocaleString()+'k liquidity, β '+f.beta.toFixed(2)+'.';
+    document.querySelector('#src tbody').innerHTML=f.sources.map(s=>'<tr><td>'+s.label+(s.pair?' <a class="note" href="https://dexscreener.com/robinhood/'+s.pair+'" target="_blank" rel="noopener">↗</a>':'')+'</td><td>'+s.venue+'</td><td class="r">'+fmtPx(s.price)+'</td><td class="r">'+(s.w*100).toFixed(1)+'%</td><td class="r '+(s.devBps>0?'up':s.devBps<0?'dn':'')+'">'+fmtBps(s.devBps)+'</td></tr>').join('')+f.rejected.map(s=>'<tr class="rej"><td>'+s.label+'</td><td>'+s.venue+'</td><td class="r">'+fmtPx(s.price)+'</td><td class="r">rejected</td><td class="r">'+fmtBps(s.devBps)+'</td></tr>').join('');
+    SIGNED=f.signed;document.getElementById('payload').textContent=JSON.stringify({payload:f.signed.payload,sig:f.signed.sig,pub:f.signed.pub},null,1);
+    document.getElementById('under').innerHTML='Robinhood Chain token <code>'+f.rh+'</code> · <a href="https://dexscreener.com/robinhood/'+f.rh+'" target="_blank" rel="noopener">pools ↗</a>'+(f.xstock?'<br>xStock on Solana <code>'+f.xstock.mint.slice(0,10)+'…</code> · <a href="https://jup.ag/tokens/'+f.xstock.mint+'" target="_blank" rel="noopener">Jupiter ↗</a>':'<br>No xStock listed for this name.');
+    const px=f.sources.find(s=>s.src==='proxy');document.getElementById('fut').innerHTML=f.futures?f.futures.sym.replace('=F','')+' at <b>'+f.futures.price.toFixed(2)+'</b>'+(px?', '+(px.move*100).toFixed(2)+'% since the cash close × β '+px.beta.toFixed(2)+' → implied '+fmtPx(px.price):' (proxy not weighted in this session).'):'—';
+    band(f.history.slice(-1080));
+  }
+  document.getElementById('verify').onclick=async()=>{if(!SIGNED)return;const r=await fetch('/api/verify?payload='+encodeURIComponent(SIGNED.payload)+'&sig='+SIGNED.sig).then(r=>r.json());document.getElementById('vres').innerHTML=r.valid?'<span class="pill green">valid</span> ed25519 signature checks out':'<span class="pill red">invalid</span>'};
+  load();setInterval(load,8000);addEventListener('resize',()=>load());
+})();
+</script>
+</body></html>

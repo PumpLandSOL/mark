@@ -1,0 +1,107 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARK — Trade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1}.row{display:flex;gap:8px;align-items:center}.row input{flex:1}.stat{display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid var(--wall2)}.stat b{font-variant-numeric:tabular-nums}.tx{font-size:13px;color:var(--faint);margin-top:8px;word-break:break-all}</style>
+</head><body>
+<header class="sign"><div class="wrap">
+  <a class="brand" href="/"><span class="mk">MAR<span>K</span></span><span class="tag">Fair value · 24/7<br>Robinhood Chain</span></a>
+  <nav><a href="/">Board</a><a href="/trade" class="on">Trade</a><a href="/desk">Practice</a><a href="/docs">Docs</a><a id="connect" class="cta" href="javascript:void(0)">Connect</a></nav>
+</div></header>
+<main class="wrap">
+  <h1 class="hero" style="font-size:clamp(40px,6vw,72px)">Trade. <em>Long or short any stock, all weekend.</em></h1>
+  <p class="lede">USDG-collateralised perpetual positions on Robinhood Chain, up to 10×, filled at MARK ± half the confidence band. Every order carries a fresh oracle signature that the contract verifies on-chain. The liquidity pool is the counterparty and earns every fee.</p>
+  <div id="nodeploy" class="plaque" hidden><h3>Venue</h3><h2>Contract address pending</h2><p>The trading contract address will appear here and at <a href="/api/config">/api/config</a> as soon as it is set. Until then use the <a href="/desk">practice desk</a>.</p></div>
+  <div class="grid2" style="grid-template-columns:380px 1fr">
+    <div>
+      <div class="plaque">
+        <h3>Order</h3>
+        <div class="field"><label class="f">Ticker</label><select id="sym"></select></div>
+        <div class="field"><label class="f">Side</label><div class="row"><button class="btn" id="long" style="flex:1">Long</button><button class="btn ghost" id="short" style="flex:1">Short</button></div></div>
+        <div class="field"><label class="f">Leverage <span id="levv">3×</span></label><input type="range" id="lev" min="1" max="10" value="3"></div>
+        <div class="field"><label class="f">Margin · USDG</label><input type="number" id="margin" value="100" min="1" step="1"></div>
+        <p class="note" id="quote" style="margin-top:12px">…</p>
+        <p style="margin-top:12px"><button class="btn amber" id="open" style="width:100%">Sign &amp; open on-chain</button></p>
+        <p class="tx" id="msg"></p>
+      </div>
+      <div class="plaque" style="margin-top:18px">
+        <h3>Collateral</h3>
+        <div class="stat"><span>Wallet USDG</span><b id="wusdg">—</b></div>
+        <div class="stat"><span>Free collateral</span><b id="wfree">—</b></div>
+        <div class="row" style="margin-top:10px"><input type="number" id="amt" value="100" min="1"><button class="btn" id="approve">Approve</button><button class="btn" id="deposit">Deposit</button><button class="btn ghost" id="withdraw">Withdraw</button></div>
+      </div>
+      <div class="plaque" style="margin-top:18px">
+        <h3>Liquidity pool · counterparty</h3>
+        <div class="stat"><span>Pool</span><b id="pool">—</b></div>
+        <div class="stat"><span>Open interest</span><b id="oi">—</b></div>
+        <div class="stat"><span>Your share</span><b id="myshare">—</b></div>
+        <div class="row" style="margin-top:10px"><input type="number" id="lpamt" value="100" min="1"><button class="btn" id="provide">Provide</button><button class="btn ghost" id="redeem">Redeem all</button></div>
+        <p class="note" style="margin-top:8px">LPs take the other side of every position and collect <span id="fee">8</span> bp per side plus liquidation remainders.</p>
+      </div>
+    </div>
+    <div>
+      <div class="bigmark"><div><div class="k">Free · USDG</div><span id="bfree" class="fl"></span></div><div><div class="k">Open</div><span id="bopen" class="fl sm"></span></div><div><div class="k">Venue</div><span id="bven" class="fl sm"></span></div></div>
+      <table class="paper" id="pos"><thead><tr><th>#</th><th>Ticker</th><th>Side</th><th class="r">Size</th><th class="r">Entry</th><th class="r">Mark</th><th class="r">PnL</th><th></th></tr></thead><tbody></tbody></table>
+      <h3 style="font-family:var(--cond);letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--faint);margin:22px 0 8px">Settled</h3>
+      <table class="paper" id="hist"><thead><tr><th>#</th><th>Ticker</th><th>Side</th><th class="r">Entry</th><th class="r">Exit</th><th>Result</th></tr></thead><tbody></tbody></table>
+      <h3 style="font-family:var(--cond);letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--faint);margin:22px 0 8px">Liquidations available</h3>
+      <p class="note" id="liq">Positions under maintenance at the current mark can be liquidated by anyone for a bounty.</p>
+      <p class="note" style="margin-top:18px">Contract <code id="caddr">—</code> · USDG <code id="uaddr">—</code> · oracle signer <code id="saddr">—</code></p>
+    </div>
+  </div>
+</main>
+<footer class="wrap foot"><span>MARK · trade the mark</span><span><a href="/">Board</a> · <a href="/docs">Docs</a> · <a href="/contracts/MarkPerps.sol">MarkPerps.sol</a></span></footer>
+<script src="/flap.js"></script><script src="/keccak.js"></script><script src="/connect.js"></script>
+<script>
+(function(){
+  const $=(id)=>document.getElementById(id);const fmt=(n,d)=>(+n).toLocaleString(undefined,{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
+  let side='long',BOARD=[],ST=null;
+  const BF=new Flap($('bfree'),10,{align:'right'}),BO=new Flap($('bopen'),2,{align:'right'}),BV=new Flap($('bven'),8);
+  const sel=(sig)=>'0x'+keccak256(sig).slice(0,8);
+  const word=(v)=>BigInt(v).toString(16).padStart(64,'0');
+  const hexw=(h)=>h.replace('0x','').padStart(64,'0');
+  const addrw=(a)=>a.toLowerCase().replace('0x','').padStart(64,'0');
+  const U6=(x)=>BigInt(Math.round(+x*1e6));
+  const PX_T='(bytes32,int64,uint64,uint64,uint8,bytes32,bytes32)';
+  const pxWords=(p)=>hexw(p.sym32)+word(p.price)+word(p.conf)+word(p.ts)+word(p.session)+hexw(p.r)+hexw(p.s);
+  async function tx(to,data){
+    if(!window.WALLET){await window.connectWallet();if(!window.WALLET)throw new Error('connect a wallet')}
+    const h=await window.ethereum.request({method:'eth_sendTransaction',params:[{from:window.WALLET,to,data}]});
+    $('msg').textContent='tx '+h+' · waiting…';
+    for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,2000));const rc=await window.ethereum.request({method:'eth_getTransactionReceipt',params:[h]});if(rc){$('msg').textContent=(rc.status==='0x1'?'confirmed ':'REVERTED ')+h;return rc}}
+    throw new Error('timeout waiting for receipt');
+  }
+  async function guarded(fn){try{$('msg').style.color='';await fn();await refresh()}catch(e){$('msg').style.color='var(--red)';$('msg').textContent=(e&&e.message)||String(e)}}
+  $('long').onclick=()=>{side='long';$('long').className='btn';$('short').className='btn ghost';quote()};
+  $('short').onclick=()=>{side='short';$('short').className='btn';$('long').className='btn ghost';quote()};
+  $('lev').oninput=()=>{$('levv').textContent=$('lev').value+'×';quote()};$('margin').oninput=quote;$('sym').onchange=quote;
+  function quote(){const f=BOARD.find(x=>x.sym===$('sym').value);if(!f)return;const px=f.mark*(1+(side==='long'?1:-1)*(f.confBps/2)/1e4);$('quote').innerHTML='Fills at <b>'+px.toFixed(2)+'</b> (mark '+f.mark.toFixed(2)+' ± '+Math.round(f.confBps)+'bp, '+f.session.toUpperCase()+'). Size '+fmt($('margin').value*$('lev').value,0)+' USDG, fee '+(ST?ST.feeBps:8)+'bp per side.'}
+  async function board(){const b=await fetch('/api/board').then(r=>r.json());BOARD=b.feeds;if(!$('sym').options.length)$('sym').innerHTML=BOARD.map(f=>'<option value="'+f.sym+'"'+(f.sym==='TSLA'?' selected':'')+'>'+f.sym+' · '+f.name+'</option>').join('');quote()}
+  async function refresh(){
+    const w=window.WALLET||'';const s=await fetch('/api/perps/state?w='+w).then(r=>r.json());ST=s;
+    if(!s.deployed){$('nodeploy').hidden=false;BV.set('PENDING','amber');return}
+    $('caddr').textContent=s.perps;$('uaddr').textContent=s.usdg;$('saddr').textContent=s.signer;$('fee').textContent=s.feeBps;BV.set('LIVE','green');
+    $('pool').textContent=fmt(s.pool)+' USDG';$('oi').textContent=fmt(s.openInterest)+' USDG';
+    if(!s.me){BF.set('—','dim');$('wusdg').textContent='connect';return}
+    $('wusdg').textContent=fmt(s.me.usdg);$('wfree').textContent=fmt(s.me.free);BF.set(fmt(s.me.free,0));
+    $('myshare').textContent=s.totalShares>0?fmt(s.me.shares/s.totalShares*s.pool)+' USDG':'0';
+    const open=s.me.positions.filter(p=>p.status===0),done=s.me.positions.filter(p=>p.status!==0);BO.set(String(open.length));
+    document.querySelector('#pos tbody').innerHTML=open.map(p=>{const f=BOARD.find(x=>x.sym===p.sym);const pnl=f?(f.mark-p.entry)/p.entry*p.size*(p.isLong?1:-1):0;return '<tr><td>'+p.id+'</td><td><b>'+p.sym+'</b></td><td><span class="pill '+(p.isLong?'green':'red')+'">'+(p.isLong?'long':'short')+'</span></td><td class="r">'+fmt(p.size,0)+'</td><td class="r">'+p.entry.toFixed(2)+'</td><td class="r">'+(f?f.mark.toFixed(2):'—')+'</td><td class="r '+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</td><td class="r"><button class="btn ghost" style="padding:4px 10px;font-size:13px" data-id="'+p.id+'" data-sym="'+p.sym+'">Close</button></td></tr>'}).join('')||'<tr><td colspan="8" class="note">no open positions</td></tr>';
+    document.querySelector('#hist tbody').innerHTML=done.reverse().map(p=>'<tr><td>'+p.id+'</td><td>'+p.sym+'</td><td>'+(p.isLong?'long':'short')+'</td><td class="r">'+p.entry.toFixed(2)+'</td><td class="r">'+p.exit.toFixed(2)+'</td><td>'+(p.status===2?'<span class="pill red">liquidated</span>':'closed')+'</td></tr>').join('')||'<tr><td colspan="6" class="note">nothing settled yet</td></tr>';
+    document.querySelectorAll('#pos button').forEach(b=>b.onclick=()=>guarded(async()=>{const p=await fetch('/api/feed/'+b.dataset.sym+'/evm').then(r=>r.json());await tx(ST.perps,sel('close(uint256,'+PX_T+')')+word(b.dataset.id)+pxWords(p))}));
+    $('liq').innerHTML=(s.liquidatable&&s.liquidatable.length)?s.liquidatable.map(id=>'<button class="btn ghost" style="padding:4px 10px;font-size:13px;margin:2px" data-liq="'+id+'">Liquidate #'+id+'</button>').join(''):'No position is under maintenance right now.';
+    document.querySelectorAll('[data-liq]').forEach(b=>b.onclick=()=>guarded(async()=>{const id=b.dataset.liq;const st=await fetch('/api/perps/state').then(r=>r.json());const pos=await fetch('/api/perps/state?w='+window.WALLET).then(r=>r.json());const sym=prompt('Ticker of position #'+id+'?');if(!sym)return;const p=await fetch('/api/feed/'+sym.toUpperCase()+'/evm').then(r=>r.json());await tx(ST.perps,sel('liquidate(uint256,'+PX_T+')')+word(id)+pxWords(p))}));
+  }
+  $('open').onclick=()=>guarded(async()=>{if(!ST||!ST.deployed)throw new Error('venue not live yet');const sym=$('sym').value;const p=await fetch('/api/feed/'+sym+'/evm').then(r=>r.json());const data=sel('open('+PX_T+',bool,uint256,uint256)')+pxWords(p)+word(side==='long'?1:0)+word(U6($('margin').value))+word($('lev').value);await tx(ST.perps,data)});
+  $('approve').onclick=()=>guarded(async()=>tx(ST.usdg,sel('approve(address,uint256)')+addrw(ST.perps)+word(U6($('amt').value))));
+  $('deposit').onclick=()=>guarded(async()=>tx(ST.perps,sel('deposit(uint256)')+word(U6($('amt').value))));
+  $('withdraw').onclick=()=>guarded(async()=>tx(ST.perps,sel('withdraw(uint256)')+word(U6($('amt').value))));
+  $('provide').onclick=()=>guarded(async()=>{await tx(ST.usdg,sel('approve(address,uint256)')+addrw(ST.perps)+word(U6($('lpamt').value)));await tx(ST.perps,sel('provide(uint256)')+word(U6($('lpamt').value)))});
+  $('redeem').onclick=()=>guarded(async()=>tx(ST.perps,sel('redeem(uint256)')+word(BigInt(Math.floor(ST.me.shares*1e6)))));
+  document.addEventListener('wallet',refresh);
+  board().then(refresh);setInterval(()=>{board();refresh()},8000);
+})();
+</script>
+</body></html>

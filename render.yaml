@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: mark
+    runtime: node
+    plan: free
+    buildCommand: ""
+    startCommand: node server/index.js
+    autoDeploy: true
+    envVars:
+      # MARK_MINT stays unset until $MARK launches (flips live:true + the CA bar).
+      # MARK_SIGNER_PRIV (base64 pkcs8 ed25519) keeps the feed signer stable across deploys.
+      # PYTH_HERMES_URL is optional — public Hermes is key-gated; MARK runs on tape+pools+xStocks+futures without it.
+      - key: NODE_VERSION
+        value: "20"

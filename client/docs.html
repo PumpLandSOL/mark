@@ -1,0 +1,78 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARK — docs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>.doc{max-width:820px}.doc h2{font-family:var(--cond);font-size:34px;text-transform:uppercase;margin:44px 0 10px;border-bottom:2px solid var(--ink);padding-bottom:4px}.doc h3{font-family:var(--cond);font-size:20px;letter-spacing:.06em;text-transform:uppercase;margin:22px 0 6px}.doc p,.doc li{color:var(--ink2)}.doc ul{margin:8px 0 8px 22px}.doc table{margin:10px 0 18px}</style>
+</head><body>
+<header class="sign"><div class="wrap">
+  <a class="brand" href="/"><span class="mk">MAR<span>K</span></span><span class="tag">Fair value · 24/7<br>Robinhood Chain</span></a>
+  <nav><a href="/">Board</a><a href="/trade">Trade</a><a href="/desk">Practice</a><a href="/docs" class="on">Docs</a><a href="/contracts/MarkOracle.sol">Contract</a><a id="connect" class="cta" href="javascript:void(0)">Connect</a></nav>
+</div></header>
+<main class="wrap doc">
+  <h1 class="hero" style="font-size:clamp(40px,6vw,72px)">Docs. <em>How the mark is made.</em></h1>
+  <p class="lede">MARK is a fair-value oracle for tokenized stocks on Robinhood Chain. It publishes, for each name, a mark and a confidence band every four seconds, 24/7, signed with a persistent ed25519 key, and it exposes an on-chain contract for staked publishers to push the same numbers.</p>
+
+  <h2>1. Regimes</h2>
+  <p>The NYSE calendar (America/New_York, full closures and 13:00 half days included) decides the regime for every instant:</p>
+  <table class="paper"><thead><tr><th>Regime</th><th>When</th><th>What the mark is</th></tr></thead><tbody>
+  <tr><td><span class="pill green">OPEN</span></td><td>09:30–16:00 weekdays</td><td>The official tape. Pools and xStocks only tighten or widen the band.</td></tr>
+  <tr><td><span class="pill">PRE / POST</span></td><td>04:00–09:30 · 16:00–20:00</td><td>Extended-hours prints, Robinhood Chain pools, xStocks, futures proxy.</td></tr>
+  <tr><td><span class="pill amber">CLOSED</span></td><td>Nights, weekends, holidays</td><td>Pools + xStocks + futures proxy. The official close decays over 72 hours.</td></tr></tbody></table>
+
+  <h2>2. Sources</h2>
+  <ul>
+    <li><b>Official tape</b>: the regular-session print and its timestamp. In CLOSED its weight decays linearly to 25% over three days.</li>
+    <li><b>Extended-hours print</b>: the last pre or post-market trade, weight fading over 12 hours.</li>
+    <li><b>Robinhood Chain pools</b>: every pool where the tokenized stock is the base token against USDG, USDC, USDT or WETH with at least $25k liquidity. Each pool is its own vote weighted by liquidity share, halved if it printed no trades in the last hour. The pool bucket scales with total liquidity up to $1.5M.</li>
+    <li><b>xStocks</b>: the Backed xStock of the same name on Solana, which trades 24/7. Weight scales with its liquidity up to $800k.</li>
+    <li><b>Futures proxy</b>: official close × (1 + β × index-futures move since that close). ES for broad names, NQ for tech. β is regressed from three months of daily returns and clamped to [0.2, 3.5].</li>
+    <li><b>Pyth</b> (optional): equity and xStock feeds if a Hermes gateway is configured. Public Hermes is key-gated as of 2026, so MARK runs without it by default.</li>
+  </ul>
+  <h3>Base weights</h3>
+  <table class="paper" id="wt"><thead><tr><th>Regime</th><th class="r">Tape</th><th class="r">Ext</th><th class="r">Pools</th><th class="r">xStock</th><th class="r">Proxy</th></tr></thead><tbody></tbody></table>
+
+  <h2>3. Blend</h2>
+  <p>A preliminary weighted median is taken across all sources. Any source more than <b id="outl">800</b> bps from it is rejected and listed under <code>rejected</code> in the feed. The mark is the weighted median of the survivors, so one manipulated pool cannot drag it. Confidence in bps is <code>max(floor, 1.5 × weighted mean absolute deviation) + min(150, 3 × hours since the official close)</code>, with floors of 5 (open), 15 (pre/post) and 25 (closed) bps. <code>basis.pool</code> reports where Robinhood Chain pools sit against the mark; a persistently rich basis is a real arbitrage signal, not an oracle error.</p>
+
+  <h2>4. API</h2>
+  <table class="paper"><thead><tr><th>Endpoint</th><th>Returns</th></tr></thead><tbody>
+  <tr><td class="mono">GET /api/board</td><td>Every feed: mark, conf, session, official print and age, basis, seq.</td></tr>
+  <tr><td class="mono">GET /api/stream</td><td>Server-sent events, the board every 4s.</td></tr>
+  <tr><td class="mono">GET /api/feed/:SYM</td><td>Full detail: sources with weights and deviations, rejected sources, β, futures, history, underlyings.</td></tr>
+  <tr><td class="mono">GET /api/feed/:SYM/signed</td><td>The signed payload, signature, signer.</td></tr>
+  <tr><td class="mono">GET /api/verify?payload&amp;sig[&amp;pub]</td><td><code>{valid}</code> against the server signer or a supplied key.</td></tr>
+  <tr><td class="mono">GET /api/signer</td><td>The ed25519 public key and payload format.</td></tr>
+  <tr><td class="mono">GET /api/history/:SYM</td><td><code>[[ts, mark, conf, session]]</code>, 20s cadence.</td></tr>
+  <tr><td class="mono">GET /api/config</td><td>Board, chain, parameters, token mint, oracle address.</td></tr></tbody></table>
+  <h3>Signed payload</h3>
+  <pre>MARK|TSLA|35837818547|255764158|1788415417|CLOSED|101
+      sym   mark·1e8     conf·1e8   unix s     session seq
+sig  = ed25519(payload)      pub = 32-byte raw key (hex)</pre>
+  <p>Fixed-point integers so that Solidity, Rust and JS rebuild the exact bytes. <code>mark·1e8</code> and <code>conf·1e8</code> are the same <code>int64 / uint64</code> the contract stores.</p>
+
+  <h2>5. Contract</h2>
+  <p><a href="/contracts/MarkOracle.sol">MarkOracle.sol</a> on Robinhood Chain (chainId 4663). Feed ids are <code>keccak256("MARK:" ‖ SYMBOL)</code>.</p>
+  <ul>
+    <li><code>addStake(amount)</code> / <code>removeStake(amount)</code>: lock $MARK to become a publisher.</li>
+    <li><code>post(feedId, price, conf, publishTime, session)</code> and <code>postMany(...)</code>: push a report. Requires stake ≥ <code>minStake</code>.</li>
+    <li><code>getPrice(feedId)</code>: free view. Median price across fresh (≤ <code>maxAge</code>) staked reports, max conf, latest session, report count. Reverts when stale.</li>
+    <li><code>pullPrice(feedId)</code>: same, but charges <code>readFee</code> $MARK and splits it across the publishers used.</li>
+    <li><code>slash(feedId, publisher, challenger)</code>: guardian slashes 20% of a publisher whose fresh report is more than 2× conf from the median; the slash goes to the challenger.</li>
+  </ul>
+  <p class="note">Addresses are published at <a href="/api/config">/api/config</a>.</p>
+
+  <h2>6. $MARK</h2>
+  <p>Utility token on Robinhood Chain. Publishers stake it, on-chain reads pay in it, slashes are paid out in it. It does not entitle holders to anything else and it is not a claim on the protocol.</p>
+
+  <h2>7. Trading · MarkPerps.sol</h2>
+  <p><a href="/contracts/MarkPerps.sol">MarkPerps.sol</a> is the venue. USDG collateral (6 decimals), one liquidity pool as counterparty, up to 10×, 8 bp fee per side to the pool, 5% maintenance, 20% of remaining margin as liquidator bounty, open interest capped at 4× the pool. Every <code>open</code>, <code>close</code> and <code>liquidate</code> takes a <code>Px</code> struct: the symbol, mark·1e8, conf·1e8, timestamp, session and the oracle's secp256k1 signature (r, s) over <code>sha256("MARKv1" ‖ sym ‖ price ‖ conf ‖ ts ‖ session)</code>. Fetch it from <code>/api/feed/:SYM/evm</code>; it is valid for 90 seconds. Fills are mark ± conf/2. PnL = size × (exit − entry) / entry, paid from and to the pool. The practice desk at <a href="/desk">/desk</a> runs the same rules on paper balances for anyone who wants to learn the venue first.</p>
+
+  <h2>8. Disclaimers</h2>
+  <p>MARK is price infrastructure. It takes no custody and holds no user funds. A mark is an estimate with a stated confidence band, not a promise that any venue will trade there. Nothing here is investment advice. Integrators should check <code>session</code> and <code>conf</code> before trusting a number, exactly as they should with any oracle.</p>
+</main>
+<footer class="wrap foot"><span>MARK · mark to market</span><span><a href="/">Board</a> · <a href="/api/board">API</a> · <a href="https://github.com/PumpLandSOL/mark" target="_blank" rel="noopener">GitHub</a></span></footer>
+<script src="/connect.js"></script>
+<script>fetch('/api/config').then(r=>r.json()).then(c=>{document.getElementById('outl').textContent=c.params.outlierBps;document.querySelector('#wt tbody').innerHTML=Object.entries(c.params.weights).map(([k,w])=>'<tr><td>'+k.toUpperCase()+'</td><td class="r">'+w.tape+'</td><td class="r">'+w.ext+'</td><td class="r">'+w.pools+'</td><td class="r">'+w.xstock+'</td><td class="r">'+w.proxy+'</td></tr>').join('')});</script>
+</body></html>

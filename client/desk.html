@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARK — the Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head><body>
+<header class="sign"><div class="wrap">
+  <a class="brand" href="/"><span class="mk">MAR<span>K</span></span><span class="tag">Fair value · 24/7<br>Robinhood Chain</span></a>
+  <nav><a href="/">Board</a><a href="/trade">Trade</a><a href="/desk" class="on">Practice</a><a href="/docs">Docs</a><a href="/contracts/MarkOracle.sol">Contract</a><a id="connect" class="cta" href="javascript:void(0)">Connect</a></nav>
+</div></header>
+<main class="wrap">
+  <h1 class="hero" style="font-size:clamp(40px,6vw,72px)">Practice. <em>Same rules, paper balances.</em></h1>
+  <p class="lede">Learn the venue before you fund it. The practice desk fills at MARK ± half the confidence band, up to 10×, with the same maintenance and liquidation rules as the on-chain contract, on a 10,000 USDG practice balance. Ready for real size? <a href="/trade">Trade on-chain</a>.</p>
+  <div class="grid2" style="grid-template-columns:360px 1fr">
+    <div class="plaque">
+      <h3>Open a position</h3>
+      <div class="field"><label class="f">Ticker</label><select id="sym"></select></div>
+      <div class="field"><label class="f">Side</label><div style="display:flex;gap:8px"><button class="btn" id="long" style="flex:1">Long</button><button class="btn ghost" id="short" style="flex:1">Short</button></div></div>
+      <div class="field"><label class="f">Leverage <span id="levv">3×</span></label><input type="range" id="lev" min="1" max="10" value="3"></div>
+      <div class="field"><label class="f">Margin · USDG</label><input type="number" id="margin" value="1000" min="10" step="10"></div>
+      <p class="note" id="quote" style="margin-top:12px">…</p>
+      <p style="margin-top:12px"><button class="btn amber" id="open" style="width:100%">Open</button></p>
+      <p class="note" id="err" style="color:var(--red)"></p>
+      <p class="note" style="margin-top:10px">Account: <code id="who">…</code> · <a href="javascript:void(0)" id="reset">reset paper account</a></p>
+    </div>
+    <div>
+      <div class="bigmark"><div><div class="k">Equity · USDG</div><span id="eq" class="fl"></span></div><div><div class="k">Cash</div><span id="cash" class="fl sm"></span></div><div><div class="k">Open</div><span id="npos" class="fl sm"></span></div></div>
+      <table class="paper" id="pos"><thead><tr><th>Ticker</th><th>Side</th><th class="r">Lev</th><th class="r">Entry</th><th class="r">Mark</th><th class="r">Liq</th><th class="r">PnL</th><th></th></tr></thead><tbody></tbody></table>
+      <h3 style="font-family:var(--cond);letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--faint);margin:22px 0 8px">Closed</h3>
+      <table class="paper" id="hist"><thead><tr><th>Ticker</th><th>Side</th><th class="r">Entry</th><th class="r">Exit</th><th class="r">PnL</th><th>Reason</th></tr></thead><tbody></tbody></table>
+      <h3 style="font-family:var(--cond);letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--faint);margin:22px 0 8px">Leaderboard</h3>
+      <table class="paper" id="lb"><thead><tr><th>#</th><th>Account</th><th class="r">Equity</th><th class="r">Trades</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</main>
+<footer class="wrap foot"><span>MARK · practice desk</span><span><a href="/">Board</a> · <a href="/docs">Docs</a></span></footer>
+<script src="/flap.js"></script><script src="/connect.js"></script>
+<script>
+(function(){
+  const $=(id)=>document.getElementById(id);const fmt=(n,d)=>(+n).toLocaleString(undefined,{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
+  let side='long',BOARD=[],ME=null;
+  const EQ=new Flap($('eq'),10,{align:'right'}),CASH=new Flap($('cash'),9,{align:'right'}),NP=new Flap($('npos'),2,{align:'right'});
+  $('long').onclick=()=>{side='long';$('long').className='btn';$('short').className='btn ghost';quote()};
+  $('short').onclick=()=>{side='short';$('short').className='btn';$('long').className='btn ghost';quote()};
+  $('lev').oninput=()=>{$('levv').textContent=$('lev').value+'×';quote()};$('margin').oninput=quote;$('sym').onchange=quote;
+  function who(){const w=window.deskId();$('who').textContent=w.startsWith('desk_')?w+' (local — connect a wallet to keep it)':w;return w}
+  function quote(){const f=BOARD.find(x=>x.sym===$('sym').value);if(!f)return;const px=f.mark*(1+(side==='long'?1:-1)*(f.confBps/2)/1e4);$('quote').innerHTML='Fills at <b>'+px.toFixed(2)+'</b> (mark '+f.mark.toFixed(2)+' ± '+Math.round(f.confBps)+'bp, session '+f.session.toUpperCase()+'). Notional '+fmt($('margin').value*$('lev').value,0)+' USDG, fee 5bp.'}
+  async function board(){const b=await fetch('/api/board').then(r=>r.json());BOARD=b.feeds;if(!$('sym').options.length){$('sym').innerHTML=BOARD.map(f=>'<option value="'+f.sym+'"'+(f.sym==='TSLA'?' selected':'')+'>'+f.sym+' · '+f.name+'</option>').join('')}quote()}
+  async function acct(){const w=who();const a=await fetch('/api/desk?w='+w).then(r=>r.json());ME=a;render(a);const lb=await fetch('/api/leaderboard').then(r=>r.json());document.querySelector('#lb tbody').innerHTML=lb.rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td class="mono">'+(r.w===w?'<b>you</b> · ':'')+r.w.slice(0,10)+'…</td><td class="r">'+fmt(r.equity,0)+'</td><td class="r">'+r.trades+'</td></tr>').join('')||'<tr><td colspan="4" class="note">no trades yet</td></tr>'}
+  function render(a){EQ.set(fmt(a.equity,0),a.equity>=a.start?'green':'red');CASH.set(fmt(a.cash,0));NP.set(String(a.positions.length));
+    document.querySelector('#pos tbody').innerHTML=a.positions.map(p=>'<tr><td><b>'+p.sym+'</b></td><td><span class="pill '+(p.side==='long'?'green':'red')+'">'+p.side+'</span></td><td class="r">'+p.lev+'×</td><td class="r">'+p.entry.toFixed(2)+'</td><td class="r">'+(p.mark?p.mark.toFixed(2):'—')+'</td><td class="r">'+p.liqPx.toFixed(2)+'</td><td class="r '+(p.pnl>=0?'up':'dn')+'">'+(p.pnl>=0?'+':'')+fmt(p.pnl)+'</td><td class="r"><button class="btn ghost" style="padding:4px 10px;font-size:13px" data-id="'+p.id+'">Close</button></td></tr>').join('')||'<tr><td colspan="8" class="note">no open positions</td></tr>';
+    document.querySelector('#hist tbody').innerHTML=a.closed.map(p=>'<tr><td>'+p.sym+'</td><td>'+p.side+' '+p.lev+'×</td><td class="r">'+p.entry.toFixed(2)+'</td><td class="r">'+p.exit.toFixed(2)+'</td><td class="r '+(p.pnl>=0?'up':'dn')+'">'+(p.pnl>=0?'+':'')+fmt(p.pnl)+'</td><td>'+(p.reason==='liquidated'?'<span class="pill red">liquidated</span>':'closed')+'</td></tr>').join('')||'<tr><td colspan="6" class="note">nothing closed yet</td></tr>';
+    document.querySelectorAll('#pos button').forEach(b=>b.onclick=async()=>{const r=await fetch('/api/desk/close',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({w:who(),id:b.dataset.id})}).then(r=>r.json());if(r.error)$('err').textContent=r.error;else acct()})}
+  $('open').onclick=async()=>{$('err').textContent='';const r=await fetch('/api/desk/open',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({w:who(),sym:$('sym').value,side,lev:+$('lev').value,margin:+$('margin').value})}).then(r=>r.json());if(r.error)$('err').textContent=r.error;else acct()};
+  $('reset').onclick=async()=>{if(!confirm('Reset your paper account to 10,000 USDG?'))return;await fetch('/api/desk/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({w:who()})});acct()};
+  document.addEventListener('wallet',()=>acct());
+  board().then(acct);setInterval(()=>{board();acct()},6000);
+})();
+</script>
+</body></html>
