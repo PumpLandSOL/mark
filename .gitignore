@@ -6,3 +6,5 @@ _studio/*-frames/
 _studio/out/
 out/
 cache/
+_studio/rec-profile-*/
+_studio/rec-frames-*/
