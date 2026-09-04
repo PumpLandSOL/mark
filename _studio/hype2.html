@@ -1,0 +1,47 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#17150f;color:#f3ecd9;font-family:'Barlow Condensed',Impact,sans-serif}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .3s}
+.scene.on{opacity:1}
+.big{font-weight:700;font-size:116px;line-height:.92;text-transform:uppercase;text-align:center;letter-spacing:.01em}
+.big em{font-style:normal;color:#f0a51f}
+.sub{font-family:'IBM Plex Sans',sans-serif;font-size:23px;color:#bdb5a1;margin-top:26px;letter-spacing:.02em}
+.fl{display:inline-flex;gap:4px}
+.fc{position:relative;width:.62em;height:1.06em;line-height:1.06em;text-align:center;font-weight:600;background:#222228;border-radius:4px;overflow:hidden;perspective:220px}
+.fc .h{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:#2a2a31;backface-visibility:hidden}
+.fc .h::after{content:attr(data-c);position:absolute;left:0;right:0;height:1.06em;line-height:1.06em}
+.fc .t{top:0;transform-origin:bottom}.fc .t::after{top:0}.fc .b{bottom:0;transform-origin:top;background:#222228}.fc .b::after{bottom:0}
+.fc .ta{z-index:3}.fc .bb{z-index:3;transform:rotateX(90deg)}
+.fc::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(0,0,0,.7);z-index:4}
+.fc.flip .ta{animation:fd .16s ease-in forwards}.fc.flip .bb{animation:fu .16s .16s ease-out forwards}
+@keyframes fd{to{transform:rotateX(-90deg)}}@keyframes fu{from{transform:rotateX(90deg)}to{transform:rotateX(0)}}
+.fl.amber .fc{color:#f0a51f}.fl.green .fc{color:#5ec87a}.fl.dim .fc{color:#a39d8c}
+.board{background:#141418;border:12px solid #0d0d10;border-radius:10px;padding:26px 40px;box-shadow:0 40px 80px rgba(0,0,0,.6)}
+.row{display:flex;gap:30px;align-items:center;font-size:50px;margin:10px 0}
+.row .lab{font-size:16px;letter-spacing:.3em;color:#8f887a;width:120px;text-transform:uppercase;font-weight:500}
+.wall{background:#ebe4d6;color:#17150f}
+.wall .big{color:#17150f}.wall .big em{color:#f0a51f;-webkit-text-stroke:2px #17150f}
+.wall .sub{color:#4a463c}
+.stamp{position:absolute;bottom:34px;right:44px;font-size:18px;letter-spacing:.3em;color:#8f887a;text-transform:uppercase}
+</style></head><body>
+<div class="scene on" id="s1"><div class="big">One stock.<br><em>Five opinions.</em></div><div class="sub">Official tape · extended print · every Robinhood Chain pool · xStock · futures × β</div></div>
+<div class="scene" id="s2"><div class="board">
+  <div class="row"><span class="lab">Tape</span><span class="fl dim" id="f1"></span><span class="lab" style="width:auto">pools</span><span class="fl" id="f2"></span></div>
+  <div class="row"><span class="lab">xStock</span><span class="fl" id="f3"></span><span class="lab" style="width:auto">futures</span><span class="fl" id="f4"></span></div>
+  <div class="row"><span class="lab">MARK</span><span class="fl green" id="f5"></span><span class="lab" style="width:auto">± band</span><span class="fl amber" id="f6"></span></div>
+</div><div class="sub">Weighted median. Outliers rejected. The band widens with doubt.</div></div>
+<div class="scene" id="s3"><div class="big">Signed.<br><em>Verified on-chain.</em></div><div class="sub">ed25519 off-chain · ecrecover in the contract · same integers, same truth</div></div>
+<div class="scene" id="s4"><div class="big">Fills at mark<br><em>± half the band.</em></div><div class="sub">USDG perps on Robinhood Chain · up to 10× · all weekend</div></div>
+<div class="scene wall" id="s5"><div class="big">MAR<em>K</em></div><div class="sub">mark to market · 24/7 · markonrh.xyz · $MARK</div></div>
+<div class="stamp">markonrh.xyz</div>
+<script>
+function Flap(el,w,r){this.c=[];this.w=w;this.r=r;this.cur='';el.classList.add('fl');for(let i=0;i<w;i++){const c=document.createElement('span');c.className='fc';c.innerHTML='<span class="h t" data-c=""></span><span class="h b" data-c=""></span><span class="h t ta" data-c=""></span><span class="h b bb" data-c=""></span>';el.appendChild(c);this.c.push(c)}}
+Flap.prototype.set=function(t){t=String(t).toUpperCase();t=this.r?t.padStart(this.w):t.padEnd(this.w);const o=this.cur.padEnd(this.w);this.cur=t;for(let i=0;i<this.w;i++){const ch=t[i],oc=o[i]||' ',c=this.c[i];if(ch===oc)continue;const [T,B,TA,BB]=c.children;c.classList.remove('flip');void c.offsetWidth;T.dataset.c=ch;B.dataset.c=oc;TA.dataset.c=oc;BB.dataset.c=ch;setTimeout(()=>{c.classList.add('flip');setTimeout(()=>{B.dataset.c=ch;TA.dataset.c=ch;c.classList.remove('flip')},340)},Math.min(i,8)*28)}};
+const F={f1:new Flap(f1,7,1),f2:new Flap(f2,7,1),f3:new Flap(f3,7,1),f4:new Flap(f4,7,1),f5:new Flap(f5,7,1),f6:new Flap(f6,6)};
+const show=(id)=>{document.querySelectorAll('.scene').forEach(s=>s.classList.toggle('on',s.id===id))};
+window.__go=async()=>{const w=(ms)=>new Promise(r=>setTimeout(r,ms));
+  await w(1500);show('s2');await w(250);F.f1.set('357.01');F.f2.set('358.82');await w(350);F.f3.set('358.38');F.f4.set('356.68');await w(450);F.f5.set('358.38');F.f6.set('±71BP');await w(1800);
+  show('s3');await w(1800);show('s4');await w(1800);show('s5');await w(1400);
+};
+</script></body></html>
