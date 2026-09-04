@@ -72,7 +72,7 @@ sig  = ed25519(payload)      pub = 32-byte raw key (hex)</pre>
   <h2>8. Disclaimers</h2>
   <p>MARK is price infrastructure. It takes no custody and holds no user funds. A mark is an estimate with a stated confidence band, not a promise that any venue will trade there. Nothing here is investment advice. Integrators should check <code>session</code> and <code>conf</code> before trusting a number, exactly as they should with any oracle.</p>
 </main>
-<footer class="wrap foot"><span>MARK · mark to market</span><span><a href="/">Board</a> · <a href="/api/board">API</a> · <a href="https://github.com/PumpLandSOL/mark" target="_blank" rel="noopener">GitHub</a></span></footer>
+<footer class="wrap foot"><span>MARK · mark to market</span><span><a href="/">Board</a> · <a href="/api/board">API</a></span></footer>
 <script src="/connect.js"></script>
 <script>fetch('/api/config').then(r=>r.json()).then(c=>{document.getElementById('outl').textContent=c.params.outlierBps;document.querySelector('#wt tbody').innerHTML=Object.entries(c.params.weights).map(([k,w])=>'<tr><td>'+k.toUpperCase()+'</td><td class="r">'+w.tape+'</td><td class="r">'+w.ext+'</td><td class="r">'+w.pools+'</td><td class="r">'+w.xstock+'</td><td class="r">'+w.proxy+'</td></tr>').join('')});</script>
 </body></html>
