@@ -7,7 +7,7 @@ services:
     startCommand: node server/index.js
     autoDeploy: true
     envVars:
-      # MARK_MINT stays unset until $MARK launches (flips live:true + the CA bar).
+      # MARK_MINT defaults to the live $MARK CA 0x84b07a7b30157db59da9a152542fdd1efe068161.
       # MARK_SIGNER_PRIV (base64 pkcs8 ed25519) keeps the feed signer stable across deploys.
       # PYTH_HERMES_URL is optional — public Hermes is key-gated; MARK runs on tape+pools+xStocks+futures without it.
       - key: NODE_VERSION

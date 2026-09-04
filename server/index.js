@@ -11,7 +11,7 @@ const EVM = require('./evm');
 
 const PORT = process.env.PORT || 8194;
 const DATA_PATH = process.env.DATA_PATH || path.join(__dirname, '..', 'data.json');
-const MARK_MINT = process.env.MARK_MINT || '';                  // $MARK contract on Robinhood Chain — set at launch
+const MARK_MINT = process.env.MARK_MINT || '0x84b07a7b30157db59da9a152542fdd1efe068161'; // $MARK · Robinhood Chain · LIVE
 const ORACLE_ADDR = process.env.MARK_ORACLE || '';              // deployed MarkOracle.sol — set after deploy
 const LIVE = !!MARK_MINT;
 const CLIENT = path.join(__dirname, '..', 'client');

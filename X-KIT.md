@@ -44,3 +44,6 @@ Code: github.com/PumpLandSOL/mark
 
 ## Assets (brand/)
 mark-pfp.png 400² · mark-wordmark.png · mark-banner.png 1500×500 · mark-og.png 1200×630 · mark-how.png · mark-vs.png · mark-demo-15s.mp4 · mark-hype-15s.mp4
+
+## CA (Robinhood Chain)
+0x84b07a7b30157db59da9a152542fdd1efe068161
