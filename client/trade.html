@@ -14,7 +14,6 @@
   <h1 class="hero" style="font-size:clamp(40px,6vw,72px)">Trade. <em>Long or short any stock, all weekend.</em></h1>
   <p class="lede">USDG-collateralised perpetual positions on Robinhood Chain, up to 10×, filled at MARK ± half the confidence band. Every order carries a fresh oracle signature that the contract verifies on-chain. The liquidity pool is the counterparty and earns every fee.</p>
   <div class="ca" style="margin:18px 0"><b>$MARK · CA · ROBINHOOD CHAIN</b><span id="caTradePage">0x84b07a7b30157db59da9a152542fdd1efe068161</span><button onclick="navigator.clipboard.writeText('0x84b07a7b30157db59da9a152542fdd1efe068161');this.textContent='Copied'">Copy</button></div>
-  <div id="nodeploy" class="plaque" hidden><h3>Venue</h3><h2>Contract address pending</h2><p>The trading contract address will appear here and at <a href="/api/config">/api/config</a> as soon as it is set. Until then use the <a href="/desk">practice desk</a>.</p></div>
   <div class="grid2" style="grid-template-columns:380px 1fr">
     <div>
       <div class="plaque">
@@ -49,7 +48,7 @@
       <table class="paper" id="hist"><thead><tr><th>#</th><th>Ticker</th><th>Side</th><th class="r">Entry</th><th class="r">Exit</th><th>Result</th></tr></thead><tbody></tbody></table>
       <h3 style="font-family:var(--cond);letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--faint);margin:22px 0 8px">Liquidations available</h3>
       <p class="note" id="liq">Positions under maintenance at the current mark can be liquidated by anyone for a bounty.</p>
-      <p class="note" style="margin-top:18px">Contract <code id="caddr">—</code> · USDG <code id="uaddr">—</code> · oracle signer <code id="saddr">—</code></p>
+      <p class="note" style="margin-top:18px">$MARK <code id="caddr">—</code> · USDG <code id="uaddr">—</code> · oracle signer <code id="saddr">—</code></p>
     </div>
   </div>
 </main>
@@ -82,7 +81,7 @@
   async function board(){const b=await fetch('/api/board').then(r=>r.json());BOARD=b.feeds;if(!$('sym').options.length)$('sym').innerHTML=BOARD.map(f=>'<option value="'+f.sym+'"'+(f.sym==='TSLA'?' selected':'')+'>'+f.sym+' · '+f.name+'</option>').join('');quote()}
   async function refresh(){
     const w=window.WALLET||'';const s=await fetch('/api/perps/state?w='+w).then(r=>r.json());ST=s;
-    if(!s.deployed){$('nodeploy').hidden=false;BV.set('PENDING','amber');return}
+    if(!s.deployed){BV.set('MARK','amber');$('caddr').textContent='0x84b07a7b30157db59da9a152542fdd1efe068161';$('uaddr').textContent=s.usdg||'—';return}
     $('caddr').textContent=s.perps;$('uaddr').textContent=s.usdg;$('saddr').textContent=s.signer;$('fee').textContent=s.feeBps;BV.set('LIVE','green');
     $('pool').textContent=fmt(s.pool)+' USDG';$('oi').textContent=fmt(s.openInterest)+' USDG';
     if(!s.me){BF.set('—','dim');$('wusdg').textContent='connect';return}
@@ -95,7 +94,7 @@
     $('liq').innerHTML=(s.liquidatable&&s.liquidatable.length)?s.liquidatable.map(id=>'<button class="btn ghost" style="padding:4px 10px;font-size:13px;margin:2px" data-liq="'+id+'">Liquidate #'+id+'</button>').join(''):'No position is under maintenance right now.';
     document.querySelectorAll('[data-liq]').forEach(b=>b.onclick=()=>guarded(async()=>{const id=b.dataset.liq;const st=await fetch('/api/perps/state').then(r=>r.json());const pos=await fetch('/api/perps/state?w='+window.WALLET).then(r=>r.json());const sym=prompt('Ticker of position #'+id+'?');if(!sym)return;const p=await fetch('/api/feed/'+sym.toUpperCase()+'/evm').then(r=>r.json());await tx(ST.perps,sel('liquidate(uint256,'+PX_T+')')+word(id)+pxWords(p))}));
   }
-  $('open').onclick=()=>guarded(async()=>{if(!ST||!ST.deployed)throw new Error('venue not live yet');const sym=$('sym').value;const p=await fetch('/api/feed/'+sym+'/evm').then(r=>r.json());const data=sel('open('+PX_T+',bool,uint256,uint256)')+pxWords(p)+word(side==='long'?1:0)+word(U6($('margin').value))+word($('lev').value);await tx(ST.perps,data)});
+  $('open').onclick=()=>guarded(async()=>{if(!ST||!ST.deployed)throw new Error('connect a wallet on Robinhood Chain to trade');const sym=$('sym').value;const p=await fetch('/api/feed/'+sym+'/evm').then(r=>r.json());const data=sel('open('+PX_T+',bool,uint256,uint256)')+pxWords(p)+word(side==='long'?1:0)+word(U6($('margin').value))+word($('lev').value);await tx(ST.perps,data)});
   $('approve').onclick=()=>guarded(async()=>tx(ST.usdg,sel('approve(address,uint256)')+addrw(ST.perps)+word(U6($('amt').value))));
   $('deposit').onclick=()=>guarded(async()=>tx(ST.perps,sel('deposit(uint256)')+word(U6($('amt').value))));
   $('withdraw').onclick=()=>guarded(async()=>tx(ST.perps,sel('withdraw(uint256)')+word(U6($('amt').value))));
